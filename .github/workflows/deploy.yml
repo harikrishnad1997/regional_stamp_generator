@@ -29,7 +29,7 @@ jobs:
           NPS_API_KEY: ${{ secrets.NPS_API_KEY }}
         run: |
           if [ -n "$NPS_API_KEY" ]; then
-            sed -i "s/NPS_API_KEY_PLACEHOLDER/${NPS_API_KEY}/g" "Passport Stamp Maker.html"
+            sed -i "s/NPS_API_KEY_PLACEHOLDER/${NPS_API_KEY}/g" "index.html"
           fi
 
       - name: Setup Pages

@@ -60,7 +60,7 @@ A web-based application designed to create high-resolution, full-color custom ph
 
 ## 💻 Quick Start & Usage
 
-1. **Open the App**: Simply open `Passport Stamp Maker.html` in any web browser (no local server or build tools required).
+1. **Open the App**: Simply open `index.html` in any web browser (no local server or build tools required).
 2. **Upload a Photo**: Click **"Choose or take a photo"**. If your photo contains GPS geotags, the closest National Park will be detected automatically.
 3. **Adjust Framing**: Use the **Zoom** and **Shift** sliders to frame your photo perfectly.
 4. **Customize Site & Region**:

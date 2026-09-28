@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Passport Stamp Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Source+Sans+3:wght@400;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+  <script src="nps_data.js"></script>
+  <style>
+    :root {
+      --bg: #ECEDE6;
+      --card: #FFFFFF;
+      --text: #26201A;
+      --muted: #675E54;
+      --line: #D3D0C4;
+      --brown: #5B3A26;
+      --green: #1E5B3A;
+      --green-ink: #FFFFFF;
+      --focus: #1E5B3A;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #17130F;
+        --card: #231C16;
+        --text: #F1EBE0;
+        --muted: #AAA090;
+        --line: #3B3229;
+        --green: #3A8A5C;
+        --focus: #7CC79A;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #17130F;
+      --card: #231C16;
+      --text: #F1EBE0;
+      --muted: #AAA090;
+      --line: #3B3229;
+      --green: #3A8A5C;
+      --focus: #7CC79A;
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 400 17px/1.5 "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    }
+
+    .wrap {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 14px 14px 40px;
+    }
+
+    .sign {
+      background: var(--brown);
+      color: #fff;
+      border-radius: 8px;
+      padding: 20px 22px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 16px;
+      box-shadow: inset 0 0 0 4px var(--brown), inset 0 0 0 6px rgba(255, 255, 255, .9);
+    }
+
+    .sign svg {
+      width: 46px;
+      height: 46px;
+      flex: none;
+    }
+
+    .sign h1 {
+      margin: 0;
+      font: 700 34px/1 "Barlow Condensed", "Arial Narrow", sans-serif;
+      letter-spacing: .02em;
+    }
+
+    .sign p {
+      margin: 4px 0 0;
+      font-size: 15px;
+      opacity: .92;
+      line-height: 1.35;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    @media (min-width: 840px) {
+      .grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .preview-col {
+        position: sticky;
+        top: 14px;
+      }
+    }
+
+    .backing {
+      background: #B5ACA7;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    #preview {
+      display: block;
+      width: 100%;
+      height: auto;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, .28);
+    }
+
+    .caption {
+      margin: 8px 2px 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font: 700 24px/1.1 "Barlow Condensed", "Arial Narrow", sans-serif;
+      letter-spacing: .01em;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    label,
+    .lbl {
+      display: block;
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      font: inherit;
+      color: var(--text);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      min-height: 46px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 110px;
+      line-height: 1.4;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--green);
+      min-height: 32px;
+    }
+
+    .rangehead {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .rangehead output {
+      color: var(--muted);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font: 600 17px/1 "Source Sans 3", system-ui, sans-serif;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 6px;
+      border: 1.5px solid var(--green);
+      background: transparent;
+      color: var(--green);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .btn {
+        color: var(--focus);
+        border-color: var(--focus);
+      }
+
+      :root:not([data-theme="light"]) .btn.primary {
+        color: #fff;
+      }
+    }
+
+    .btn.primary {
+      background: var(--green);
+      color: var(--green-ink);
+    }
+
+    .btn.block {
+      width: 100%;
+    }
+
+    .btn.small {
+      min-height: 40px;
+      font-size: 15px;
+      padding: 0 14px;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    :focus-visible,
+    .filewrap:focus-within .btn {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .filewrap {
+      position: relative;
+    }
+
+    .sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      opacity: 0;
+    }
+
+    .fname {
+      margin: 8px 0 0;
+      font-size: 14px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      min-height: 40px;
+    }
+
+    .check input {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--green);
+    }
+
+    .swatchrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .swatchrow i {
+      width: 44px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid var(--line);
+      display: block;
+      flex: none;
+    }
+
+    .note {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 8px 0 0;
+      line-height: 1.4;
+    }
+
+    #status,
+    #libStatus {
+      min-height: 22px;
+      margin: 10px 0 0;
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    #fallback {
+      display: none;
+      margin-top: 12px;
+    }
+
+    #fallback img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+    }
+
+    .foot {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 4px 2px 0;
+    }
+
+    .sugg {
+      list-style: none;
+      margin: 6px 0 0;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .sugg li+li {
+      border-top: 1px solid var(--line);
+    }
+
+    .sugg button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: var(--card);
+      color: var(--text);
+      border: 0;
+      padding: 9px 12px;
+      min-height: 48px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .sugg small {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="sign">
+      <svg viewBox="-1 -1 2 2" aria-hidden="true">
+        <path fill="#fff"
+          d="M0 -1 C0.3 -0.7 0.85 -0.5 0.85 0.15 C0.85 0.6 0.4 0.85 0 1 C-0.4 0.85 -0.85 0.6 -0.85 0.15 C-0.85 -0.5 -0.3 -0.7 0 -1 Z" />
+        <path fill="#5B3A26" d="M0 -0.55 L0.3 0.15 L-0.3 0.15Z M-0.05 0.15 h0.1 v0.3 h-0.1Z" />
+      </svg>
+      <div>
+        <h1>Passport stamp maker</h1>
+        <p>Make a full-color photo stamp with auto-loaded NPS data and EXIF geolocated park matching[cite: 1].</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="preview-col">
+        <div class="backing"><canvas id="preview" width="768" height="650" role="img"
+            aria-label="Preview of your regional stamp"></canvas></div>
+        <p class="caption" id="caption">Showing sample art. Choose your own photo to replace it[cite: 1].</p>
+      </div>
+
+      <div class="controls">
+        <section class="card">
+          <h2>Photo</h2>
+          <div class="field filewrap">
+            <label class="btn primary block" for="file">Choose or take a photo</label>
+            <input class="sr" id="file" type="file" accept="image/*">
+            <p class="fname" id="fname"></p>
+          </div>
+          <div class="field">
+            <div class="rangehead"><label for="zoom">Zoom</label><output id="o_zoom"></output></div>
+            <input type="range" id="zoom" min="30" max="300" value="100">
+          </div>
+          <div class="field">
+            <div class="rangehead"><label for="ox">Shift left or right</label><output id="o_ox"></output></div>
+            <input type="range" id="ox" min="-100" max="100" value="0">
+          </div>
+          <div class="field">
+            <div class="rangehead"><label for="oy">Shift up or down</label><output id="o_oy"></output></div>
+            <input type="range" id="oy" min="-100" max="100" value="0">
+          </div>
+          <div class="field">
+            <label for="credit">Photo credit (optional)</label>
+            <input type="text" id="credit" maxlength="40" placeholder="Your name/NPS" autocomplete="off">
+          </div>
+          <p class="note" id="geoStatus" role="status" aria-live="polite">Geotag status: Ready for photo upload.</p>
+        </section>
+
+        <section class="card">
+          <h2>Site</h2>
+          <div class="field">
+            <label for="name">Site name</label>
+            <input type="text" id="name" maxlength="60" value="Zion" autocomplete="off"
+              placeholder="Start typing, like Friendship Hill">
+            <ul class="sugg" id="sugg" hidden></ul>
+          </div>
+          <div class="field">
+            <label for="desig">Site type</label>
+            <select id="desig"></select>
+            <p class="note" id="fullNamePreview"></p>
+          </div>
+          <p id="libStatus" role="status" aria-live="polite"
+            style="margin-top: 8px; font-size: 14px; color: var(--muted);">Auto-loading official NPS data...</p>
+        </section>
+
+        <section class="card">
+          <h2>Region label</h2>
+          <div class="field">
+            <label for="region">Regional stamp</label>
+            <select id="region"></select>
+            <div class="swatchrow"><i id="swatch"></i><span id="labelPreview"></span></div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="year">Year</label>
+              <input type="number" id="year" min="1916" max="2099" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="st">Suggest from state</label>
+              <select id="st">
+                <option value="">Choose state</option>
+              </select>
+            </div>
+          </div>
+          <p class="note">The state only suggests a region. Change the region if your site is grouped differently[cite:
+            1].</p>
+        </section>
+
+        <section class="card">
+          <h2>Caption card</h2>
+          <label class="check"><input type="checkbox" id="capOn" checked> Add a description card below the stamp</label>
+          <div id="capFields">
+            <div class="field" style="margin-top:8px">
+              <label for="desc">Description (Auto-filled from NPS website)</label>
+              <textarea id="desc" maxlength="1200"
+                placeholder="Fills in automatically when you pick a site or upload a geolocated photo."></textarea>
+            </div>
+            <div class="field">
+              <a class="btn block small" id="npsLink" href="https://www.nps.gov/search/" target="_blank"
+                rel="noopener">Find this site on nps.gov</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Save</h2>
+          <button type="button" class="btn primary block" id="save">Save as PNG (6.5cm x 5.5cm @ 300 DPI)</button>
+          <p id="status" role="status" aria-live="polite"></p>
+          <div id="fallback">
+            <p class="note">Touch and hold the image to save it.</p><img alt="Your finished stamp">
+          </div>
+          <p class="note">Exports at strictly 768 x 650 pixels (6.5cm wide x 5.5cm high at 300 DPI), rendering strictly
+            at 6.5cm wide × 5.5cm high at 300
+            DPI[cite: 1].</p>
+        </section>
+
+        <p class="foot">Label colors were matched by eye to a published regional stamp sheet. This is a look-alike for
+          your own book, not an official stamp[cite: 1]. Descriptions come from the NPS data API[cite: 1].</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const $ = s => document.querySelector(s);
+      const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+      const SANS = '"Source Sans 3","Segoe UI","Helvetica Neue",Arial,sans-serif';
+
+      // Strict export dimensions for 6.5cm wide x 5.5cm high at 300 DPI:
+      // 6.5 cm = 2.559 inches * 300 DPI = ~768 pixels wide
+      // 5.5 cm = 2.165 inches * 300 DPI = ~650 pixels high
+      // Strict 300 DPI export dimensions (6.5cm wide x 5.5cm high):
+      const W = 768, H = 650;
+      const BH = 50;
+
+      const DARK = '#1A1A1A', LIGHT = '#FFFFFF';
+      const REGIONS = [
+        { id: 'north-atlantic', name: 'North Atlantic', color: '#E3A262', text: DARK },
+        { id: 'mid-atlantic', name: 'Mid-Atlantic', color: '#91C5EC', text: DARK },
+        { id: 'national-capital', name: 'National Capital', color: '#ED145B', text: LIGHT },
+        { id: 'southeast', name: 'Southeast', color: '#C76BAA', text: DARK },
+        { id: 'midwest', name: 'Midwest', color: '#F9A61A', text: DARK },
+        { id: 'southwest', name: 'Southwest', color: '#BAADB6', text: DARK },
+        { id: 'rocky-mountain', name: 'Rocky Mountain', color: '#FFCB04', text: DARK },
+        { id: 'western', name: 'Western', color: '#01A650', text: LIGHT },
+        { id: 'pnw-ak', name: 'Pacific Northwest & Alaska', color: '#019FE4', text: DARK, custom: y => `${y} Pacific Northwest & Alaska Stamp` },
+        { id: 'national', name: 'National', color: '#E6B10E', text: DARK, custom: y => `${y} National Stamp` }
+      ];
+      const byId = id => REGIONS.find(r => r.id === id);
+      const STATE_REGION = {
+        CT: 'north-atlantic', ME: 'north-atlantic', MA: 'north-atlantic', NH: 'north-atlantic', NJ: 'north-atlantic', NY: 'north-atlantic', RI: 'north-atlantic', VT: 'north-atlantic',
+        PA: 'mid-atlantic', DE: 'mid-atlantic', MD: 'mid-atlantic', VA: 'mid-atlantic', WV: 'mid-atlantic',
+        DC: 'national-capital',
+        AL: 'southeast', AR: 'southeast', FL: 'southeast', GA: 'southeast', KY: 'southeast', LA: 'southeast', MS: 'southeast', NC: 'southeast', SC: 'southeast', TN: 'southeast', PR: 'southeast', VI: 'southeast',
+        IL: 'midwest', IN: 'midwest', IA: 'midwest', KS: 'midwest', MI: 'midwest', MN: 'midwest', MO: 'midwest', NE: 'midwest', ND: 'midwest', OH: 'midwest', SD: 'midwest', WI: 'midwest',
+        AZ: 'southwest', NM: 'southwest', OK: 'southwest', TX: 'southwest',
+        CO: 'rocky-mountain', MT: 'rocky-mountain', UT: 'rocky-mountain', WY: 'rocky-mountain',
+        CA: 'western', NV: 'western', HI: 'western', GU: 'western', AS: 'western', MP: 'western',
+        AK: 'pnw-ak', ID: 'pnw-ak', OR: 'pnw-ak', WA: 'pnw-ak'
+      };
+      const STATE_NAMES = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming', PR: 'Puerto Rico', VI: 'U.S. Virgin Islands', GU: 'Guam', AS: 'American Samoa', MP: 'Northern Mariana Islands' };
+
+      const DESIGS = [
+        ['', ''],
+        ['National Park', 'NP'], ['National Historic Site', 'NHS'], ['National Historical Park', 'NHP'],
+        ['National Monument', 'NM'], ['National Memorial', 'NMEM'], ['National Military Park', 'NMP'],
+        ['National Battlefield', 'NB'], ['National Battlefield Park', 'NBP'], ['National Battlefield Site', 'NBS'],
+        ['National Recreation Area', 'NRA'], ['National Seashore', 'NS'], ['National Lakeshore', 'NL'],
+        ['National Preserve', 'NPRES'], ['National Reserve', 'NR'], ['National River', 'NRIV'],
+        ['National Scenic River', 'NSR'], ['National Scenic Trail', 'NST'], ['National Historic Trail', 'NHT'],
+        ['Parkway', 'PKWY'], ['Park', 'PARK'], ['Memorial', 'MEMORIAL']
+      ];
+
+      const state = {
+        region: 'rocky-mountain', year: new Date().getFullYear(),
+        zoom: 100, ox: 0, oy: 0, credit: '', capOn: true, name: 'Zion', desig: 'National Park', desc: 'Zion National Park is a southwest Utah nature preserve distinguished by Zion Canyon’s steep red cliffs.',
+        src: null, isSample: true
+      };
+      function fullName() {
+        const n = state.name.trim(), d = state.desig;
+        if (!d) return n;
+        return n.toLowerCase().endsWith(d.toLowerCase()) ? n : `${n} ${d}`.trim();
+      }
+
+      function makeSample() {
+        const c = mk(1000, 600), g = c.getContext('2d');
+        const sky = g.createLinearGradient(0, 0, 0, 380);
+        sky.addColorStop(0, '#4e9ad8'); sky.addColorStop(1, '#cfe6f6');
+        g.fillStyle = sky; g.fillRect(0, 0, 1000, 600);
+        g.fillStyle = 'rgba(255,255,255,.85)';
+        [[180, 90, 90], [260, 100, 60], [720, 70, 80], [800, 82, 55]].forEach(([x, y, r]) => { g.beginPath(); g.ellipse(x, y, r * 1.5, r * .4, 0, 0, Math.PI * 2); g.fill(); });
+        g.fillStyle = '#8a9db3';
+        g.beginPath(); g.moveTo(0, 400); g.lineTo(180, 250); g.lineTo(320, 340); g.lineTo(520, 180); g.lineTo(720, 340); g.lineTo(860, 250); g.lineTo(1000, 360); g.lineTo(1000, 600); g.lineTo(0, 600); g.fill();
+        g.fillStyle = '#b5673f';
+        g.beginPath(); g.moveTo(0, 470); g.lineTo(240, 340); g.lineTo(420, 430); g.lineTo(640, 300); g.lineTo(1000, 480); g.lineTo(1000, 600); g.lineTo(0, 600); g.fill();
+        g.fillStyle = '#7a4326';
+        g.beginPath(); g.moveTo(0, 520); g.quadraticCurveTo(350, 450, 1000, 530); g.lineTo(1000, 600); g.lineTo(0, 600); g.fill();
+        g.fillStyle = '#2f5e34';
+        const pine = (x, y, s) => { g.beginPath(); for (let i = 0; i < 4; i++) { const w = s * (.3 + i * .15), yy = y - s + i * s * .28; g.moveTo(x, yy); g.lineTo(x + w, yy + s * .42); g.lineTo(x - w, yy + s * .42); } g.fill(); };
+        [[110, 590, 150], [200, 596, 110], [820, 592, 170], [910, 598, 120]].forEach(p => pine(...p));
+        return c;
+      }
+      state.src = makeSample();
+
+      function labelText() {
+        const r = byId(state.region), y = state.year || '';
+        return r.custom ? r.custom(y) : `${y} ${r.name} Regional Stamp`;
+      }
+
+      function wrapCaption(g, name, desc, maxW) {
+        const words = [];
+        name.trim().split(/\s+/).filter(Boolean).forEach(w => words.push({ w, b: true }));
+        desc.trim().split(/\s+/).filter(Boolean).forEach(w => words.push({ w, b: false }));
+        const fontOf = b => `${b ? 700 : 400} 15px ${SANS}`;
+        g.font = fontOf(false);
+        const space = g.measureText(' ').width;
+        const lines = []; let line = [], x = 0;
+        words.forEach(o => {
+          g.font = fontOf(o.b);
+          const w = g.measureText(o.w).width;
+          if (line.length && x + space + w > maxW) { lines.push(line); line = []; x = 0; }
+          o.x = x ? x + space : 0; o.width = w; x = o.x + w; line.push(o);
+        });
+        if (line.length) lines.push(line);
+        return { lines, fontOf };
+      }
+
+      function render() {
+        const region = byId(state.region);
+        const fname = fullName();
+        const hasCard = state.capOn && (fname || state.desc.trim());
+        const pad = 12, lh = 20;
+        const scratch = mk(10, 10).getContext('2d');
+        const cap = hasCard ? wrapCaption(scratch, fname, state.desc, W - pad * 2) : null;
+
+        // Calculate exact required caption height based on wrapped lines
+        const cardH = (hasCard && cap && cap.lines.length) ? (pad + 12 + (cap.lines.length - 1) * lh + pad) : 0;
+
+        // Photo height dynamically absorbs remaining space within strict 650px (5.5cm) canvas
+        const PH = H - BH - cardH;
+
+        const cv = $('#preview');
+        if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+        const g = cv.getContext('2d');
+        g.clearRect(0, 0, W, H);
+
+        const s = state.src, sc = Math.max(W / s.width, PH / s.height) * state.zoom / 100;
+        const dw = s.width * sc, dh = s.height * sc;
+        const dx = (W - dw) / 2 + (dw > W ? state.ox / 100 * (dw - W) / 2 : 0);
+        const dy = (PH - dh) / 2 + (dh > PH ? state.oy / 100 * (dh - PH) / 2 : 0);
+        g.save(); g.beginPath(); g.rect(0, 0, W, PH); g.clip();
+        g.fillStyle = '#17130F'; g.fillRect(0, 0, W, PH);
+        g.imageSmoothingQuality = 'high'; g.drawImage(s, dx, dy, dw, dh); g.restore();
+
+        if (state.credit.trim()) {
+          g.save(); g.font = `600 15px ${SANS}`; g.textAlign = 'right'; g.textBaseline = 'top';
+          g.shadowColor = 'rgba(0,0,0,.65)'; g.shadowBlur = 5; g.fillStyle = '#fff';
+          g.fillText(state.credit.trim(), W - 12, 8); g.restore();
+        }
+
+        g.fillStyle = region.color; g.fillRect(0, PH, W, BH);
+        g.fillStyle = region.text; g.textAlign = 'left'; g.textBaseline = 'middle';
+        let fs = 28; const text = labelText();
+        for (; fs > 16; fs -= 2) { g.font = `700 ${fs}px ${SANS}`; if (g.measureText(text).width <= W - 28) break; }
+        g.font = `700 ${fs}px ${SANS}`;
+        g.fillText(text, 14, PH + BH / 2 + 1);
+
+        if (hasCard && cap && cap.lines.length) {
+          g.fillStyle = '#fff'; g.fillRect(0, PH + BH, W, cardH);
+          g.fillStyle = '#1A1A1A'; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+          cap.lines.forEach((ln, i) => {
+            const y = PH + BH + pad + 12 + i * lh;
+            ln.forEach(o => { g.font = cap.fontOf(o.b); g.fillText(o.w, pad + o.x, y); });
+          });
+        }
+
+        $('#labelPreview').textContent = text;
+        $('#swatch').style.background = region.color;
+        const abbr = (DESIGS.find(d => d[0] === state.desig) || [])[1];
+        $('#fullNamePreview').textContent = fname ? `Shown as: ${fname}${abbr ? ' (' + abbr + ')' : ''}` : '';
+        $('#npsLink').href = fname ? 'https://www.nps.gov/search/?query=' + encodeURIComponent(fname) : 'https://www.nps.gov/search/';
+      }
+      let pending = false;
+      function schedule() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; render(); }); }
+
+      const rgSel = $('#region'), stSel = $('#st'), dsSel = $('#desig'), nameEl = $('#name'), descEl = $('#desc');
+      REGIONS.forEach(r => { const o = document.createElement('option'); o.value = r.id; o.textContent = r.name; rgSel.appendChild(o); });
+      Object.keys(STATE_NAMES).sort((a, b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b])).forEach(ab => {
+        const o = document.createElement('option'); o.value = ab; o.textContent = `${STATE_NAMES[ab]} (${ab})`; stSel.appendChild(o);
+      });
+      function addDesigOption(text, abbr) {
+        if ([...dsSel.options].some(o => o.value === text)) return;
+        const o = document.createElement('option'); o.value = text; o.textContent = abbr ? `${abbr} \u2013 ${text}` : text; dsSel.appendChild(o);
+      }
+      DESIGNS_INIT();
+      function DESIGNS_INIT() {
+        DESIGS.forEach(([t, a]) => {
+          const o = document.createElement('option'); o.value = t;
+          o.textContent = t ? `${a} \u2013 ${t}` : 'No type (name only)'; dsSel.appendChild(o);
+        });
+      }
+      rgSel.value = state.region; $('#year').value = state.year; stSel.value = 'UT'; dsSel.value = state.desig;
+
+      rgSel.addEventListener('change', () => { state.region = rgSel.value; schedule(); });
+      stSel.addEventListener('change', () => {
+        const id = STATE_REGION[stSel.value];
+        if (id) { state.region = id; rgSel.value = id; schedule(); }
+      });
+      dsSel.addEventListener('change', () => { state.desig = dsSel.value; schedule(); });
+      $('#year').addEventListener('input', e => { state.year = e.target.value; schedule(); });
+      $('#credit').addEventListener('input', e => { state.credit = e.target.value; schedule(); });
+      descEl.addEventListener('input', e => { state.desc = e.target.value; schedule(); });
+      $('#capOn').addEventListener('change', e => setCap(e.target.checked));
+      function setCap(on) { state.capOn = on; $('#capFields').style.display = on ? 'block' : 'none'; schedule(); }
+
+      const fmt = { zoom: v => v + '%', ox: v => v, oy: v => v };
+      Object.keys(fmt).forEach(k => {
+        const el = $('#' + k), out = $('#o_' + k);
+        el.addEventListener('input', () => { state[k] = +el.value; out.textContent = fmt[k](+el.value); schedule(); });
+        out.textContent = fmt[k](+el.value);
+      });
+
+      let LIB = [];
+      const libStatus = $('#libStatus');
+
+      async function autoLoadNpsData() {
+        libStatus.textContent = 'Auto-loading official NPS data...';
+        if (window.NPS_FALLBACK_DATA && Array.isArray(window.NPS_FALLBACK_DATA)) {
+          LIB = window.NPS_FALLBACK_DATA;
+          libStatus.textContent = `Auto-loaded ${LIB.length} official NPS sites (local dataset).`;
+        }
+        try {
+          const apiKey = (typeof process !== 'undefined' && process && process.env && process.env.NPS_API_KEY)
+            ? process.env.NPS_API_KEY
+            : 'NPS_API_KEY_PLACEHOLDER';
+          const res = await fetch(`https://developer.nps.gov/api/v1/parks?limit=500&api_key=${apiKey}`);
+          if (!res.ok) throw new Error(`Network response was not ok (${res.status})`);
+          const json = await res.json();
+          const arr = json && Array.isArray(json.data) ? json.data : null;
+          if (!arr) throw new Error('Invalid format');
+          const map = new Map();
+          arr.forEach(p => {
+            if (!p || !p.fullName) return;
+            const rec = {
+              c: p.parkCode || '', n: String(p.fullName).trim(), d: String(p.designation || '').trim(),
+              s: String(p.states || '').trim(), t: String(p.description || '').replace(/\s+/g, ' ').trim(),
+              latLong: String(p.latLong || (p.latitude && p.longitude ? `lat:${p.latitude}, long:${p.longitude}` : '')).trim()
+            };
+            map.set(rec.c || rec.n, rec);
+          });
+          LIB = [...map.values()];
+          libStatus.textContent = `Auto-loaded ${LIB.length} official NPS sites successfully (live API).`;
+        } catch (err) {
+          console.warn('Live NPS API auto-load failed, using local dataset:', err);
+          if (LIB.length > 0) {
+            libStatus.textContent = `Loaded ${LIB.length} official NPS sites from local dataset.`;
+          } else {
+            libStatus.textContent = 'Auto-load failed. Type site names manually.';
+          }
+        }
+      }
+
+      function parseLatLong(latLongStr) {
+        if (!latLongStr) return null;
+        const match = latLongStr.match(/lat:\s*([-\d.]+),\s*long:\s*([-\d.]+)/i);
+        if (match) {
+          return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
+        }
+        const parts = latLongStr.split(',').map(s => parseFloat(s.trim()));
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          return { lat: parts[0], lon: parts[1] };
+        }
+        return null;
+      }
+
+      function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = deg2rad(lat2 - lat1);
+        const dLon = deg2rad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      }
+      function deg2rad(deg) { return deg * (Math.PI / 180); }
+
+      function matchParkByGeo(photoLat, photoLon) {
+        if (!LIB.length) return;
+        let closestPark = null;
+        let minDistance = Infinity;
+
+        LIB.forEach(park => {
+          const coords = parseLatLong(park.latLong);
+          if (coords) {
+            const dist = getDistanceFromLatLonInKm(photoLat, photoLon, coords.lat, coords.lon);
+            if (dist < minDistance) {
+              minDistance = dist;
+              closestPark = park;
+            }
+          }
+        });
+
+        if (closestPark && minDistance <= 150) {
+          $('#geoStatus').textContent = `Geotag found! Closest park: ${closestPark.n} (~${Math.round(minDistance)} km away)`;
+          applyRecord(closestPark);
+        } else if (closestPark) {
+          $('#geoStatus').textContent = `Geotag found, but nearest park (${closestPark.n}) is ~${Math.round(minDistance)} km away.`;
+        } else {
+          $('#geoStatus').textContent = 'Geotag found, but no matching park coordinates available.';
+        }
+      }
+
+      $('#file').addEventListener('change', e => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+
+        $('#geoStatus').textContent = 'Reading photo metadata (EXIF)...';
+        EXIF.getData(f, function () {
+          const lat = EXIF.getTag(this, "GPSLatitude");
+          const latRef = EXIF.getTag(this, "GPSLatitudeRef");
+          const lon = EXIF.getTag(this, "GPSLongitude");
+          const lonRef = EXIF.getTag(this, "GPSLongitudeRef");
+
+          if (lat && lon && latRef && lonRef) {
+            const decLat = (lat[0] + lat[1] / 60 + lat[2] / 3600) * (latRef === "S" ? -1 : 1);
+            const decLon = (lon[0] + lon[1] / 60 + lon[2] / 3600) * (lonRef === "W" ? -1 : 1);
+            matchParkByGeo(decLat, decLon);
+          } else {
+            $('#geoStatus').textContent = 'No GPS metadata found in this photo.';
+          }
+        });
+
+        const url = URL.createObjectURL(f), img = new Image();
+        img.onload = () => {
+          const max = 2400, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = mk(Math.round(img.naturalWidth * k), Math.round(img.naturalHeight * k));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          state.src = c; state.isSample = false;
+          $('#fname').textContent = f.name;
+          $('#caption').textContent = 'Use the zoom and shift sliders to frame your photo[cite: 1].';
+          URL.revokeObjectURL(url); schedule();
+        };
+        img.onerror = () => { $('#fname').textContent = 'That file could not be read as an image. Try a JPG or PNG.'; URL.revokeObjectURL(url); };
+        img.src = url;
+      });
+
+      function applyRecord(rec) {
+        let n = rec.n, d = rec.d;
+        if (d && n.toLowerCase().endsWith(d.toLowerCase())) n = n.slice(0, n.length - d.length).trim();
+        if (d) addDesigOption(d, '');
+        state.name = n; nameEl.value = n;
+        state.desig = d; dsSel.value = d;
+        const first = (rec.s.split(',')[0] || '').trim().toUpperCase();
+        if (STATE_NAMES[first]) { stSel.value = first; const id = STATE_REGION[first]; if (id) { state.region = id; rgSel.value = id; } }
+        if (rec.t) { state.desc = rec.t; descEl.value = rec.t; }
+        hideSugg(); schedule();
+      }
+      const sugg = $('#sugg');
+      function hideSugg() { sugg.hidden = true; sugg.innerHTML = ''; }
+      function showSugg(q) {
+        q = q.trim().toLowerCase();
+        if (q.length < 2 || !LIB.length) return hideSugg();
+        const hits = LIB.filter(r => r.n.toLowerCase().includes(q))
+          .sort((a, b) => (b.n.toLowerCase().startsWith(q) - a.n.toLowerCase().startsWith(q)) || a.n.localeCompare(b.n)).slice(0, 6);
+        if (!hits.length) return hideSugg();
+        sugg.innerHTML = '';
+        hits.forEach(r => {
+          const li = document.createElement('li'), b = document.createElement('button'), sm = document.createElement('small');
+          b.type = 'button'; b.textContent = r.n; sm.textContent = [r.d, r.s].filter(Boolean).join(' \u00B7 ');
+          b.appendChild(sm); b.addEventListener('click', () => applyRecord(r));
+          li.appendChild(b); sugg.appendChild(li);
+        });
+        sugg.hidden = false;
+      }
+      nameEl.addEventListener('input', e => {
+        state.name = e.target.value; schedule(); showSugg(e.target.value);
+        const exact = LIB.find(r => r.n.toLowerCase() === e.target.value.trim().toLowerCase());
+        if (exact) applyRecord(exact);
+      });
+
+      autoLoadNpsData();
+
+      const status = $('#status');
+      const toBlob = c => new Promise(res => c.toBlob(res, 'image/png'));
+      const slug = s => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      let dlPromise = null;
+      function getDownloads() {
+        if (!dlPromise) dlPromise = (async () => { try { return window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { return null; } })();
+        return dlPromise;
+      }
+      function fallback(blob) {
+        const box = $('#fallback'), img = box.querySelector('img');
+        if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+        const u = URL.createObjectURL(blob); img.dataset.url = u; img.src = u; box.style.display = 'block';
+        status.textContent = 'Your stamp is ready below.';
+      }
+      $('#save').addEventListener('click', async () => {
+        status.textContent = 'Preparing your stamp\u2026';
+        render();
+        const blob = await toBlob($('#preview'));
+        const filename = `${slug(fullName()) || 'passport'}-${state.region}-stamp.png`;
+        const dl = await getDownloads();
+        if (!dl) return fallback(blob);
+        try { await dl.save({ filename, data: blob }); status.textContent = 'Stamp saved.'; }
+        catch (err) { if (err && err.code === 'declined') status.textContent = 'Save cancelled.'; else fallback(blob); }
+      });
+
+      render();
+      document.fonts.load(`700 40px "Source Sans 3"`).catch(() => { }).then(() => document.fonts.load(`400 34px "Source Sans 3"`)).catch(() => { }).then(() => document.fonts.ready).then(schedule);
+    })();
+  </script>
+</body>
+
+</html>
